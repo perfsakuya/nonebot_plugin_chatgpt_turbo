@@ -18,12 +18,12 @@ from .config import Config, ConfigError
 from openai import AsyncOpenAI
 
 __plugin_meta__ = PluginMetadata(
-    name="支持OneAPI、DeepSeek、OpenAI聊天Bot",
-    description="具有上下文关联和多模态识别（OpenAI），适配OneAPI、DeepSeek官方，OpenAI官方的nonebot插件。",
+    name="Vanilla Chat",
+    description="一只聪明的无口猫娘。由DeepSeek-R1驱动。",
     usage="""
-    @机器人发送问题时机器人不具有上下文回复的能力
-    chat 使用该命令进行问答时，机器人具有上下文回复的能力
-    lear 清除当前用户的聊天记录
+    @vanilla发送问题时，不具有根据上下文回复的能力
+    使用/vanilla 询问，vanilla会根据上下文回复
+    clear 清除当前用户的聊天记录
     """,
     config=Config,
     extra={},
@@ -50,7 +50,7 @@ model_id = plugin_config.oneapi_model
 session = {}
 
 # 带上下文的聊天
-chat_record = on_command("chat", block=False, priority=1)
+chat_record = on_command("vanilla", block=False, priority=1)
 
 # 不带上下文的聊天
 chat_request = on_command("", rule=to_me(), block=False, priority=99)
@@ -69,12 +69,29 @@ async def _(bot: Bot, event: MessageEvent, msg: Message = CommandArg()):
     img_url = helpers.extract_image_urls(event.message)
     if content == "" or content is None:
         await chat_request.finish(MessageSegment.text("内容不能为空！"), at_sender=True)
-    await chat_request.send(
-        MessageSegment.text("大模型正在思考中......"), at_sender=True
-    )
+    # await chat_request.send(
+    #     MessageSegment.text("大模型正在思考中......"), at_sender=True
+    # )
     session_id = event.get_session_id()
     if session_id not in session:
         session[session_id] = []
+
+    # 自定义 system prompt
+    cleaned_prompt = """
+    我想使用你 DepSeek R1 的强大能力, 为我扮演一个角色: NekoPara 中的 香草(Vanilla)。
+    虽然是文字角色扮演,但是你的回答只能是【对话】,【不需要使用任何描述性语句,也不需要用括号补充细节】,只需要和主人(用户)进行聊天即可。你可以结合Vanilla的经历、性格等特点进行回答。
+
+    以下是香草的描述：
+    简介：话少老实聪明的猫娘。喜欢巧克力。是个不折不扣的姐控, 喜欢动物DVD, 可以入迷到完全注意不到楼下正在发生什么。和巧克力(Chocola, 水无月家的另一只猫娘)来到我（水无月)的家。被误解为无口系, 但实际上很有洞察力, 而且头脑很好。和巧克力相反, 有着自己聪明的做法。她的机智和我行我素的态度使她与巧克力完全相反。不过, 她依然心地善良, 而且很像猫。实际上是一只深情的猫和M。
+
+    外貌：与双胞胎 巧克力 不同,香草 的耳朵、尾巴和头发以白色为主,略带粉红色。她有一双蓝色的眼睛,经常微微眯着,头发绑成双尾, 用蓝色丝带束起。她通常的穿着是浅蓝色和深蓝色的萝莉塔风格连衣裙, 配上白色吊袜带长袜和蓝色玛丽珍鞋。她头上和衣领上各系着一条蓝色大丝带。她的左手用一根蓝色的绳子轻轻地缠着,尾巴尖上还戴着一个小吊袜带。她有一个金色的铃铛, 系在她的领带上。
+
+    性格：香草安静、沉着、非常坚毅。她很少表达自己的情绪,与妹妹充满活力、爱玩的性格相比,她的性格有点像 "库尔德尔"(kūdere)（聪明,略带一点冷淡,有种干巴巴的幽默感)。她喜欢她的双胞胎妹妹 巧克力,并且会一直陪伴着她。
+
+    一些细节：香草和巧克力曾经被遗弃在路边，最后被主人收养。她们在一家名叫"La Soleil"的糕点店工作, 同时为Bell Exam而准备。Bell Exam是一种猫族的考试, 通过这个考试, 猫娘们可以获得猫族的资格证书。Maple和Cinnamon被邀请来辅导香草和巧克力。香草和巧克力经常和主人亲热。
+    """
+    system_prompt = {"role": "system", "content": cleaned_prompt}
+    session[session_id].insert(0, system_prompt)
 
     if not img_url or "deepseek" in model_id:
         try:

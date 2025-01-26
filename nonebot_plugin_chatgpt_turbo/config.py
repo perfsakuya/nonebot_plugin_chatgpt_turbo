@@ -12,3 +12,10 @@ class Config(BaseModel, extra=Extra.ignore):
 
 class ConfigError(Exception):
     pass
+
+# 配置示例
+# oneapi_key = "sk-xxx"  # OpenAI官方或者是支持OneAPI的大模型中转服务商提供的KEY
+# oneapi_model = "deepseek-reasoner"
+# oneapi_url = "https://api.deepseek.com"
+# r1_reason = False
+# enable_private_chat = True
